@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate serde_derive;
 
-use chrono::{DateTime, FixedOffset};
+use chrono::NaiveDateTime;
 use serde_json::Value;
 use std::fmt;
 
@@ -51,7 +51,7 @@ impl std::str::FromStr for Response {
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct WeatherData {
     #[serde(with = "date_serde")]
-    pub timestamp: DateTime<FixedOffset>,
+    pub timestamp: NaiveDateTime,
     pub source_id: i32,
     pub precipitation: Option<f32>,
     pub pressure_msl: Option<f32>,
@@ -166,14 +166,14 @@ pub struct Source {
     pub station_name: String,
     pub wmo_station_id: String,
     #[serde(with = "date_serde")]
-    pub first_record: DateTime<FixedOffset>,
+    pub first_record: NaiveDateTime,
     #[serde(with = "date_serde")]
-    pub last_record: DateTime<FixedOffset>,
+    pub last_record: NaiveDateTime,
     pub distance: f32,
 }
 
 impl Source {
-    fn contains(&self, time: &DateTime<FixedOffset>) -> bool {
+    fn contains(&self, time: &NaiveDateTime) -> bool {
         &self.first_record <= time && time <= &self.last_record
     }
 }
@@ -270,15 +270,16 @@ impl fmt::Display for ObservationType {
 }
 
 mod date_serde {
-    use chrono::{DateTime, FixedOffset};
+    use chrono::NaiveDateTime;
     use serde::{self, Deserialize, Deserializer};
 
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<FixedOffset>, D::Error>
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<NaiveDateTime, D::Error>
     where
         D: Deserializer<'de>,
     {
         let s: String = String::deserialize(deserializer)?;
-        Ok(DateTime::parse_from_rfc3339(&s).map_err(serde::de::Error::custom)?)
+        Ok(NaiveDateTime::parse_from_str(&s, "%Y-%m-%dT%H:%M:%S%z")
+            .map_err(serde::de::Error::custom)?)
     }
 }
 
